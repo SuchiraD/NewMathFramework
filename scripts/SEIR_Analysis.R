@@ -63,11 +63,17 @@ calculateDengueDynamicsWeekly = function(day, sh0, eh0, ih0, rh0, index) {
                         best.ih = ih0, 
                         best.rh = rh0, 
                         best.a = 0,
-                        test[index,][7:ncol(test)])
+                        test[index,][7],
+                        test[index,][9:ncol(test)])
   sparce_matrix_test <- sparse.model.matrix(best.a ~ .-1, data = testData)
   pred[index] <<- predict(model, sparce_matrix_test)
-  a = pred[index]/10000
+  if(pred[index]<0) {
+    pred[index] <<- mean(results$best.a)
+  }
+  a = pred[index]
 
+  
+  
   sh0 = testData$best.sh
   eh0 = testData$best.eh
   ih0 = testData$best.ih
@@ -86,7 +92,7 @@ calculateDengueDynamicsWeekly = function(day, sh0, eh0, ih0, rh0, index) {
 
 
 calculateDengueDynamicsWeeklyWithPredVals = function(index) {
-  a = pred[index]/10000
+  a = pred[index]/rounder
   
   sh0 = test$best.sh[index]
   eh0 = test$best.eh[index]
@@ -104,8 +110,8 @@ calculateDengueDynamicsWeeklyWithPredVals = function(index) {
   return(ShEhIhRh)
 }
 
-calculateDengueDynamicsWeekly10 = function(day, sh0, eh0, ih0, rh0, index) {
-  if(index%%4==0) {
+calculateDengueDynamicsWeekly10 = function(day, sh0, eh0, ih0, rh0, index, range) {
+  if(index!=0 && index%%range==0) {
     sh0 = test$best.sh[index]
     eh0 = test$best.eh[index]
     ih0 = test$best.ih[index]
@@ -118,10 +124,14 @@ calculateDengueDynamicsWeekly10 = function(day, sh0, eh0, ih0, rh0, index) {
                         best.ih = ih0, 
                         best.rh = rh0, 
                         best.a = 0,
-                        test[index,][7:ncol(test)])
+                        test[index,][7],
+                        test[index,][9:ncol(test)])
   sparce_matrix_test <- sparse.model.matrix(best.a ~ .-1, data = testData)
   pred[index] <<- predict(model, sparce_matrix_test)
-  a = pred[index]/10000
+  if(pred[index]<0) {
+    pred[index] <<- mean(results$best.a)
+  }
+  a = pred[index]
   
   sh0 = testData$best.sh
   eh0 = testData$best.eh
@@ -194,6 +204,7 @@ circularIndex = function(index, lag=1, array.size) {
   return(ifelse(newIndex<=0, (array.size-abs(newIndex)), newIndex))
 }
 
+
 replaceInitValues = function(results1) {
 #  tempResults = results1
 #  for(index in 2:nrow(results1)) {
@@ -203,34 +214,43 @@ replaceInitValues = function(results1) {
   
   #results1$temperature[3:NROW(results1)] = temperature[results1$day[2:length(results1)]-1]
   
-  averageCases = as.integer(mean(currentMOH$cases))
-  results1$lastWeekCases = c(averageCases, averageCases, currentMOH$cases[1:50])
+  #averageCases = as.integer(mean(currentMOH$cases))
+  
+  #results1$casesLag1 = cases[[results1$year[1]]][cases[[results1$year[1]]]$moh_name == results1$moh_name,]$cases[circularIndex(results1$day, 1, 156)]
+  #results1$casesLag2 = cases[[results1$year[1]]][cases[[results1$year[1]]]$moh_name == results1$moh_name,]$cases[circularIndex(results1$day, 2, 156)]
+  #results1$casesLag3 = cases[[results1$year[1]]][cases[[results1$year[1]]]$moh_name == results1$moh_name,]$cases[circularIndex(results1$day, 3, 156)]
+  #results1$casesLag4 = cases[[results1$year[1]]][cases[[results1$year[1]]]$moh_name == results1$moh_name,]$cases[circularIndex(results1$day, 4, 156)]
+  
+  results1$casesLag1 = currentMOH$cases[circularIndex(results1$day, 1, 156)]
+  results1$casesLag2 = currentMOH$cases[circularIndex(results1$day, 2, 156)]
+  results1$casesLag3 = currentMOH$cases[circularIndex(results1$day, 3, 156)]
+  results1$casesLag4 = currentMOH$cases[circularIndex(results1$day, 4, 156)]
+  
   #results1$lastWeekCases[1:2] = as.integer(mean(results1$lastWeekCases[3:NROW(results1)]))
   
   #results1$temperature[1:2] = as.integer(mean(results1$temperature[3:NROW(results1)]))
   #results1$rainfall[2:NROW(results1)] = rainFall[1:(NROW(results1)-1)]
   #results1$partialDiff = (gammah-1)*results1$best.eh/results1$best.sh
   
-  results1$tempLag1 = c(temperature[51:52], temperature[1:50])
-  results1$tempLag2 = c(temperature[50:52],temperature[1:49])
-  results1$tempLag3 = c(temperature[49:52],temperature[1:48])
-  results1$tempLag4 = c(temperature[48:52],temperature[1:47])
-  results1$tempLag5 = c(temperature[47:52],temperature[1:46])
-  results1$tempLag6 = c(temperature[46:52],temperature[1:45])
-  results1$tempLag7 = c(temperature[45:52],temperature[1:44])
-  results1$tempLag8 = c(temperature[44:52],temperature[1:43])
-  results1$tempLag9 = c(temperature[43:52],temperature[1:42])
-  results1$tempLag10 = c(temperature[42:52],temperature[1:41])
-  results1$tempLag11 = c(temperature[41:52],temperature[1:40])
-  results1$tempLag12 = c(temperature[40:52],temperature[1:39])
+  results1$tempLag1 = temperature[circularIndex(results1$day, 1, 52)]
+  results1$tempLag2 = temperature[circularIndex(results1$day, 2, 52)]
+  results1$tempLag3 = temperature[circularIndex(results1$day, 3, 52)]
+  results1$tempLag4 = temperature[circularIndex(results1$day, 5, 52)]
+  results1$tempLag6 = temperature[circularIndex(results1$day, 6, 52)]
+  results1$tempLag7 = temperature[circularIndex(results1$day, 7, 52)]
+  results1$tempLag8 = temperature[circularIndex(results1$day, 8, 52)]
+  results1$tempLag9 = temperature[circularIndex(results1$day, 9, 52)]
+  results1$tempLag10 = temperature[circularIndex(results1$day, 10, 52)]
+  results1$tempLag11 = temperature[circularIndex(results1$day, 11, 52)]
+  results1$tempLag12 = temperature[circularIndex(results1$day, 12, 52)]
   
-  results1$mobilityLag1 = c(mobility$mobility[51:52], mobility$mobility[1:50])
-  results1$mobilityLag2 = c(mobility$mobility[50:52], mobility$mobility[1:49])
-  results1$mobilityLag3 = c(mobility$mobility[49:52], mobility$mobility[1:48])
-  results1$mobilityLag4 = c(mobility$mobility[48:52], mobility$mobility[1:47])
-  results1$mobilityLag5 = c(mobility$mobility[47:52], mobility$mobility[1:46])
-  results1$mobilityLag6 = c(mobility$mobility[46:52], mobility$mobility[1:45])
-  results1$mobilityLag7 = c(mobility$mobility[45:52], mobility$mobility[1:44])
+  results1$mobilityLag1 = c(mobility$mobility[circularIndex(results1$day, 1, 52)])
+  results1$mobilityLag2 = c(mobility$mobility[circularIndex(results1$day, 2, 52)])
+  results1$mobilityLag3 = c(mobility$mobility[circularIndex(results1$day, 3, 52)])
+  results1$mobilityLag4 = c(mobility$mobility[circularIndex(results1$day, 4, 52)])
+  results1$mobilityLag5 = c(mobility$mobility[circularIndex(results1$day, 5, 52)])
+  results1$mobilityLag6 = c(mobility$mobility[circularIndex(results1$day, 6, 52)])
+  results1$mobilityLag7 = c(mobility$mobility[circularIndex(results1$day, 7, 52)])
   
   return(results1)
 }
@@ -292,7 +312,7 @@ tempSEIR = array(test[1,][2:5])
 SEIR = data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])
 for(week in 0:(length(predA)-1)) {
   #tempSEIR = calculateDengueDynamicsWeekly(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1))
-  tempSEIR = calculateDengueDynamicsWeekly10(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1))
+  tempSEIR = calculateDengueDynamicsWeekly10(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1), 4)
   #tempSEIR = calculateDengueDynamicsWeeklyWithPredVals(index = (week+1))
   #SEIR = data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])  
   SEIR[week+2, ] = tempSEIR
@@ -300,21 +320,40 @@ for(week in 0:(length(predA)-1)) {
 RMSLE = rmsle(predicted = pred, actual = actual)
 RMSLE
 
-maxs <- apply(SEIR, 2, max) 
-mins <- apply(SEIR, 2, min)
-SEIR <- as.data.frame(scale(SEIR, center = mins, scale = maxs - mins))
-
-maxs <- apply(test, 2, max) 
-mins <- apply(test, 2, min)
-test <- as.data.frame(scale(test, center = mins, scale = maxs - mins))
-
-plot(test$day, SEIR$eh[test$day+1], xlab = "Week", ylab = "Eh",type = "l", col = 2, main = paste("Dengue 2014 from Dengue 2012 and Dengue 2013 : ", dengue2014[area2013_2014,][2]))
+plot(test$day, SEIR$eh[test$day+1-test$day[1]], xlab = "Week", ylab = "Eh",type = "l", col = 2, main = paste("Dengue 2014 from Dengue 2012 and Dengue 2013 : ", dengue2014[area2013_2014,][2]))
 lines(test$day, test$best.eh, type = "l", col = 1)
 legend("topright",col=c(2,1),lty=1,legend=c("Predicted","Actual"))
 
+#maxs <- apply(SEIR, 2, max) 
+#mins <- apply(SEIR, 2, min)
+#SEIR <- as.data.frame(scale(SEIR, center = mins, scale = maxs - mins))
+
+#maxs <- apply(test, 2, max) 
+#mins <- apply(test, 2, min)
+#test <- as.data.frame(scale(test, center = mins, scale = maxs - mins))
+
+#Plot Dengue cases
+denguePredsFor2014 = SEIR$eh*gammah*reportingRate
+plot((test$day+1), denguePredsFor2014[1:52], xlab = "Week", ylab = "Dengue Cases",type = "l", col = 2, main = paste("Dengue 2014 from Dengue 2012, Dengue 2013, Dengue 2014 1to30 : ", dengue2014[area2013_2014,][2]))
+lines((test$day+1), cases2014[1:52], type = "l", col = 1)
+
+data = data.frame(week = (test$day+1), predicted = as.numeric(denguePredsFor2014[test$day+1-test$day[1]]), actual = as.numeric(cases2014[test$day+1-test$day[1]]))
+dmelt = melt(data, id = "week")
+title = paste("Dengue Incidences 2014 Prediction by XGBoost - Dehiwala MOH  RMSLE = ", round(RMSLE, digits = 5))
+
+ggplot(data = dmelt, 
+       aes(x = week, y = value, color = variable, shape=variable)) +
+  xlab("Week") +
+  ylab("Incidences") +
+  #theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+  geom_line() +
+  geom_point()+
+  ggtitle(title, subtitle = "Model Trained by 2012,2013 and first 4 weeks of 2014 with 1st,2nd, 3rd, 4th lag of cases") +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))
+
 
 #All in 3 files
-resultLocation = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Dehiwala-Tue Dec 20 06:53:12 IST 2016"
+resultLocation = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/MC - Colombo-Fri Dec 23 05:20:26 IST 2016"
 testLocation = resultLocation
 
 results1 = fread(paste(resultLocation,"SEIRAnalysis2012.csv",sep = "/"), data.table = F, header = T)
@@ -322,10 +361,10 @@ results2 = fread(paste(resultLocation,"SEIRAnalysis2013.csv",sep = "/"), data.ta
 results3 = fread(paste(resultLocation,"SEIRAnalysis2014.csv",sep = "/"), data.table = F, header = T)
 test = fread(paste(testLocation,"SEIRAnalysis2014TEST.csv",sep = "/"), data.table = F, header = T)
 
-results1 <- as.data.frame(sapply(results1, as.numeric))
-results2 <- as.data.frame(sapply(results2, as.numeric))
-results3 <- as.data.frame(sapply(results3, as.numeric))
-test <- as.data.frame(sapply(test, as.numeric))
+results1 <- data.frame(sapply(results1[1:7], as.numeric), results1[8])
+results2 <- data.frame(sapply(results2[1:7], as.numeric), results2[8])
+results3 <- data.frame(sapply(results3[1:7], as.numeric), results3[8])
+test <- data.frame(sapply(test[1:7], as.numeric), test[8])
 
 dehiwala2012 = 1
 dehiwala2013_2014 = 55
@@ -333,19 +372,66 @@ dehiwala2013_2014 = 55
 colombo2012 = 8
 colombo2013_2014 = 181
 
-area2012 = dehiwala2012
-area2013_2014 = dehiwala2013_2014
+area2012 = colombo2012
+area2013_2014 = colombo2013_2014
 
-currentMOH$cases= melt(dengue2012[area2012,][3:54])$value
+currentMOH = data.frame(week = 1:156, cases = 1:156)
+cases2012 = melt(dengue2012[area2012,][3:54])$value
+cases2013 = melt(dengue2013[area2013_2014,][3:54])$value
+cases2014 = melt(dengue2014[area2013_2014,][3:54])$value
+cases2011 = (cases2012+cases2013)/2
+cases2015 = (cases2013+cases2014)/2
+
+#A list to keep combined cases
+#cases = list()
+#cases[[2012]] = data.frame(moh_name = dengue2012[area2012,][,2], week = c(0:51), cases = c(cases2012, cases2013, cases2011)/reportingRate)
+#cases[[2013]] = data.frame(moh_name = dengue2013[area2013_2014,][,2], week = c(0:51), cases = c(cases2013, cases2014, cases2012)/reportingRate)
+#cases[[2014]] = data.frame(moh_name = dengue2014[area2013_2014,][,2], week = c(0:51), cases = c(cases2014, cases2015, cases2011)/reportingRate)
+
+#cases2 = list()
+#area2012 = colombo2012
+#area2013_2014 = colombo2013_2014
+#cases2012 = melt(dengue2012[area2012,][3:54])$value
+#cases2013 = melt(dengue2013[area2013_2014,][3:54])$value
+#cases2014 = melt(dengue2014[area2013_2014,][3:54])$value
+#cases2011 = (cases2012+cases2013)/2
+#cases2015 = (cases2013+cases2014)/2
+#cases2[[2012]] = data.frame(moh_name = "MC - Colombo", week = c(0:51), cases = c(cases2012, cases2013, cases2011)/reportingRate)
+#cases2[[2013]] = data.frame(moh_name = dengue2013[area2013_2014,][,2], week = c(0:51), cases = c(cases2013, cases2014, cases2012)/reportingRate)
+#cases2[[2014]] = data.frame(moh_name = dengue2014[area2013_2014,][,2], week = c(0:51), cases = c(cases2014, cases2015, cases2011)/reportingRate)
+
+#cases[[2012]] = merge(cases[[2012]], cases2[[2012]], all=T, sort=F)
+#cases[[2013]] = merge(cases[[2013]], cases2[[2013]], all=T, sort=F)
+#cases[[2014]] = merge(cases[[2014]], cases2[[2014]], all=T, sort=F)
+
+currentMOH$cases= c(cases2012, cases2013, cases2011)
 currentMOH$cases = currentMOH$cases/0.02
 results1 = replaceInitValues(results1)
-currentMOH$cases= melt(dengue2013[area2013_2014,][3:54])$value
+
+currentMOH$cases= c(cases2013, cases2014, cases2012)
 currentMOH$cases = currentMOH$cases/0.02
 results2 = replaceInitValues(results2)
-currentMOH$cases= melt(dengue2014[area2013_2014,][3:54])$value
+
+currentMOH$cases = c(cases2014, cases2015, cases2011)
 currentMOH$cases = currentMOH$cases/0.02
 results3 = replaceInitValues(results3)
 test = replaceInitValues(test)
 
+#results1$seasonality = 1
+#results2$seasonality = 0
+#results3$seasonality = 1
+#test$seasonality = 1
+
 results = merge(results1, results2, all = T)
 results = merge(results, results3, all = T)
+
+
+testData = data.frame(day = 6, 
+                      best.sh = test$best.sh[test$day==6], 
+                      best.eh = test$best.eh[test$day==6], 
+                      best.ih = test$best.ih[test$day==6], 
+                      best.rh = test$best.rh[test$day==6], 
+                      best.a = 0,
+                      test[7,][7:ncol(test)])
+sparce_matrix_test <- sparse.model.matrix(best.a ~ .-1, data = testData)
+predict(model, sparce_matrix_test)

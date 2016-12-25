@@ -8,8 +8,8 @@ require(Ckmeans.1d.dp)
 #model <- xgboost(data = sparce_matrix_train, label = week789dataLess2000[, "Demanda_uni_equil"], nfold = 4, max.depth = 23, eta = 0.05, nthread = 2, nround = 63, objective = "reg:linear", maximize = FALSE)
 
 # XGBoost for yearly data
-results$best.a = results$best.a*10000
-test$best.a = test$best.a*10000
+results$best.a = results$best.a*10
+test$best.a = test$best.a*10
 
 results$best.a = results$best.a/10000
 test$best.a = test$best.a/10000
@@ -38,10 +38,22 @@ days = test$day
 testData = results[(nrow(results)-prev):nrow(results),]
 actual = results$best.a[(nrow(results)-prev):nrow(results)]
 
-toPred = 1
-prev = toPred - 1
+# XGBoost for yearly data
+results$best.a = results$best.a/rounder
+test$best.a = test$best.a/rounder
+
+toPred = 0
+prev = toPred - 0
 data = results[1:(nrow(results)-toPred),]
+data = data.frame(data[1:6], data[9:length(data)])
+data = data.matrix(data)
+data <- data[,-6]
+#data <- data[,-7]
 testData = test
+testData = data.frame(test[1:6], test[9:length(test)])
+testData = data.matrix(testData)
+testData <- testData[,-6]
+#testData <- testData[,-7]
 label = results$best.a[1:(nrow(results)-toPred)]
 actual = test$best.a
 days = test$day
@@ -52,11 +64,13 @@ nround = 100000
 max.depth = 10
 model <- xgb.cv(data = sparce_matrix_train, label = label, nfold = 3, max.depth = max.depth, eta = eta, nthread = 4, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE)
 
-nround = 5000
+nround = 2000
 model <- xgboost(data = sparce_matrix_train, label = label, nfold = 3, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
+model <- xgboost(data = data, label = label, nfold = 3, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
 
 sparce_matrix_test <- sparse.model.matrix(best.a ~ .-1, data = testData)
 pred = predict(model, sparce_matrix_test)
+pred = predict(model, testData)
 mse(predicted = pred, actual = actual)
 rmsle(predicted = pred, actual = actual)
 
@@ -68,9 +82,9 @@ act = data.frame(actual = actual, pred = pred)
 importance_matrix <- xgb.importance(sparce_matrix_train@Dimnames[[2]], model = model)
 xgb.plot.importance(importance_matrix)
 
-days = c(1:9)
-plot(days, actual, xlab = "Week", ylab = "a", type = "l", col = "1", main=paste("Predicted parameter 'a': For 2014 from 2012 and 2013: RMSL=", rmsle(predicted = pred, actual = actual), " :  ", dengue2014[area2013_2014,][2]))
-lines(days, pred, xlab = "Day", ylab = "a", type = "l", col = "2")
+days = c(0:51)
+plot(days, actual[1:52], xlab = "Week", ylab = "a", type = "l", col = "1", main=paste("Predicted parameter 'a': For 2014 from 2012 and 2013: RMSL=", rmsle(predicted = pred, actual = actual), " :  ", dengue2014[area2013_2014,][2]))
+lines(days, pred[1:52], xlab = "Day", ylab = "a", type = "l", col = "2")
 legend("topright",col=c(2,1),lty=1,legend=c("Predicted","Actual"))
 
 
