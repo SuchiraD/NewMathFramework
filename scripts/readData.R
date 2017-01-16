@@ -22,13 +22,21 @@ currentMOH$cases = currentMOH$cases/0.02
 colomboTempArea = 138
 dehiwalaTempArea = 296
 
-tempArea=dehiwalaTempArea
 temperatureData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/temp/temp.csv", data.table = F, header = T)
+tempArea=dehiwalaTempArea
 temperature = melt(temperatureData2013[tempArea,][,3:54])$value
 
 #Read rainFall 
 rainfallData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/R/ANN/data/rainfall2013.csv", data.table = F, header = T, col.names = c("MOH_name", c(1:52)))
 rainFall = melt(rainfallData2013[152,][,2:53])$value
+
+#Read Population
+populations = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Population/Estimated and Actual Populations in MOH's Srilanka2.csv", data.table = F, header = T)
+populations = data.frame(sapply(populations[1:2], as.numeric), populations[3], sapply(populations[4:6], as.numeric))
+  
+#Read ISD
+isd = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/ISD-Weather/SL-2006-2016/9009387163514dat.txt", data.table = F, header = T, sep=' ')
+
 
 #Read results
 mfrow = c(1,1)
@@ -47,6 +55,32 @@ mobArea = 57
 mobility = data.frame(week = c(mobility2013$week[mobility2013$moh.id==mobArea], 49:52), 
                       mobility = c(mobility2013$mobility.value[mobility2013$moh.id==mobArea], (mobility2013$mobility.value[mobility2013$moh.id==mobArea])[45:48])
 )
+
+#Read mobility - trips
+#mobilityTrips2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/weekly_mobility_trips.csv", data.table = F, header = T)
+mobilityTrips2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/weekly_mobility_trips_top10.csv", data.table = F, header = T)
+class(mobilityTrips2013$WEEK_NUMBER) = 'numeric'
+class(mobilityTrips2013$MOBILITY_VALUE) = "numeric"
+mobilityTrips2013 = data.frame(MOH_NAME = sapply(mobilityTrips2013$MOH_NAME, simpleCap), HOME = sapply(mobilityTrips2013$HOME, simpleCap), mobilityTrips2013[3:4])
+mobilityTrips2013$HOME_CASES = 0
+getCases = function(x) {
+  column = (as.integer(x[3])+2)
+  dengue2013[dengue2013$MOH_name==x[2],][,column]
+}
+mobilityTrips2013$HOME_CASES = apply(mobilityTrips2013, 1, getCases)
+class(mobilityTrips2013$HOME_CASES) = "numeric"
+mobilityTrips2013[is.na(mobilityTrips2013)]= 0
+mobilityTrips2013$MOBILITY_FACTOR = mobilityTrips2013$MOBILITY_VALUE*mobilityTrips2013$HOME_CASES
+
+simpleCap = function(x) {
+  if(x=="MC - Colombo" || x=="Kalutara(North)" || x=="Beruwala(North)") {
+    return (x)
+  }
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
+        sep="", collapse=" ")
+}
+
 
 results = fread("myfile.csv", data.table = F, header = F, col.names = c(c(1:52), "Total"))
 results[results < 0] = 0
