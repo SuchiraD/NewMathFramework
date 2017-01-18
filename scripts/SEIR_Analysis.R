@@ -393,15 +393,15 @@ predict(model, sparce_matrix_test)
 
 testLocation = resultLocation
 setTrainingAndTest = function(resultLocation, testLocation, area2012, area2013_2014, tempArea, mobilityArea) {
-  results1 = fread(paste(resultLocation,"SEIRAnalysis2012.csv",sep = "/"), data.table = F, header = T)
-  results2 = fread(paste(resultLocation,"SEIRAnalysis2013.csv",sep = "/"), data.table = F, header = T)
+  results1 <<- fread(paste(resultLocation,"SEIRAnalysis2012.csv",sep = "/"), data.table = F, header = T)
+  results2 <<- fread(paste(resultLocation,"SEIRAnalysis2013.csv",sep = "/"), data.table = F, header = T)
   #results3 = fread(paste(resultLocation,"SEIRAnalysis2014.csv",sep = "/"), data.table = F, header = T)
-  test1 = fread(paste(testLocation,"SEIRAnalysis2014TEST.csv",sep = "/"), data.table = F, header = T)
+  test1 <<- fread(paste(testLocation,"SEIRAnalysis2014TEST.csv",sep = "/"), data.table = F, header = T)
   
-  results1 <- data.frame(sapply(results1[1:7], as.numeric), results1[8], sapply(results1[9], as.numeric))
-  results2 <- data.frame(sapply(results2[1:7], as.numeric), results2[8], sapply(results2[9], as.numeric))
+  results1 <<- data.frame(sapply(results1[1:7], as.numeric), results1[8], sapply(results1[9], as.numeric))
+  results2 <<- data.frame(sapply(results2[1:7], as.numeric), results2[8], sapply(results2[9], as.numeric))
   #results3 <- data.frame(sapply(results3[1:7], as.numeric), results3[8])
-  test1 <- data.frame(sapply(test1[1:7], as.numeric), test1[8], sapply(test1[9], as.numeric))
+  test1 <<- data.frame(sapply(test1[1:7], as.numeric), test1[8], sapply(test1[9], as.numeric))
   
   temperature = melt(temperatureData2013[tempArea,][,3:54])$value
   mobility = data.frame(week = c(mobility2013$week[mobility2013$moh.id==mobilityArea], 49:52), 
@@ -417,16 +417,16 @@ setTrainingAndTest = function(resultLocation, testLocation, area2012, area2013_2
   
   currentMOH$cases = c(cases2012, cases2013, cases2011)
   currentMOH$cases = currentMOH$cases/reportingRate
-  results1 = replaceInitValues(results1)
+  results1 <<- replaceInitValues(results1)
   
   currentMOH$cases= c(cases2013, cases2014, cases2012)
   currentMOH$cases = currentMOH$cases/reportingRate
-  results2 = replaceInitValues(results2)
+  results2 <<- replaceInitValues(results2)
   
   currentMOH$cases = c(cases2014, cases2015, cases2013)
   currentMOH$cases = currentMOH$cases/reportingRate
   #results3 = replaceInitValues(results3)
-  test1 = replaceInitValues(test1)
+  test1 <<- replaceInitValues(test1)
   
   cat("Reporting rate: ", reportingRate)
   
@@ -514,68 +514,6 @@ replaceInitValues = function(results1) {
   results1$tempLag11 = temperature[circularIndex(results1$day, 11, 52)]
   results1$tempLag12 = temperature[circularIndex(results1$day, 12, 52)]
   
-  #Factorized mobility values
-  current.moh.name = unique(results1$moh_name)
-  current.moh.year = unique(results1$year)
-  
-  current.mobility.trips = mobilityTrips2013[mobilityTrips2013$MOH_NAME==current.moh.name,]
-  current.mobility.trips = current.mobility.trips[(current.mobility.trips$HOME %in% ALL_MOH_NAMES),]
-  mobilityMOH = data.frame(week = 1:156, cases = 1:156)
-  
-  getCases = function(x) {
-    column = (as.integer(x[3])+2)
-    dengue2012[dengue2012$MOH_name==x[2],][,column]
-  }
-  current.mobility.trips$HOME_CASES_2012 = apply(current.mobility.trips, 1, getCases)
-  class(current.mobility.trips$HOME_CASES_2012) = "numeric"
-  
-  getCases = function(x) {
-    column = (as.integer(x[3])+2)
-    dengue2013[dengue2013$MOH_name==x[2],][,column]
-  }
-  current.mobility.trips$HOME_CASES_2013 = apply(current.mobility.trips, 1, getCases)
-  class(current.mobility.trips$HOME_CASES_2013) = "numeric"
-  
-  getCases = function(x) {
-    column = (as.integer(x[3])+2)
-    dengue2014[dengue2014$MOH_name==x[2],][,column]
-  }
-  current.mobility.trips$HOME_CASES_2014 = apply(current.mobility.trips, 1, getCases)
-  class(current.mobility.trips$HOME_CASES_2014) = "numeric"
-  
-  current.mobility.trips[is.na(current.mobility.trips)]= 0
-  current.mobility.trips$HOME_CASES_FACTOR_2012 = current.mobility.trips$MOBILITY_VALUE*current.mobility.trips$HOME_CASES_2012
-  current.mobility.trips$HOME_CASES_FACTOR_2013 = current.mobility.trips$MOBILITY_VALUE*current.mobility.trips$HOME_CASES_2013
-  current.mobility.trips$HOME_CASES_FACTOR_2014 = current.mobility.trips$MOBILITY_VALUE*current.mobility.trips$HOME_CASES_2014
-  
-  index = 1
-  for (week in unique(current.mobility.trips$WEEK_NUMBER)) {
-    cases2012[index] = sum(current.mobility.trips$HOME_CASES_FACTOR_2012[current.mobility.trips$WEEK_NUMBER==week])/sum(current.mobility.trips$MOBILITY_VALUE[current.mobility.trips$WEEK_NUMBER==week])
-    cases2013[index] = sum(current.mobility.trips$HOME_CASES_FACTOR_2013[current.mobility.trips$WEEK_NUMBER==week])/sum(current.mobility.trips$MOBILITY_VALUE[current.mobility.trips$WEEK_NUMBER==week])
-    cases2014[index] = sum(current.mobility.trips$HOME_CASES_FACTOR_2014[current.mobility.trips$WEEK_NUMBER==week])/sum(current.mobility.trips$MOBILITY_VALUE[current.mobility.trips$WEEK_NUMBER==week])
-    index = index+1
-  }
-  
-  cases2011 = (cases2012+cases2013)/2
-  cases2015 = (cases2013+cases2014)/2
-  
-  if(current.moh.year==2012) {
-    mobilityMOH$cases = c(cases2012, cases2013, cases2011)
-    mobilityMOH$cases = mobilityMOH$cases/reportingRate
-  }
-  
-  if(current.moh.year==2013) {
-    mobilityMOH$cases= c(cases2013, cases2014, cases2012)
-    mobilityMOH$cases = mobilityMOH$cases/reportingRate
-  }
-  
-  if(current.moh.year==2014) {
-    mobilityMOH$cases = c(cases2014, cases2015, cases2013)
-    mobilityMOH$cases = mobilityMOH$cases/reportingRate
-  }
-  results1$mobilityLag4 = mobilityMOH$cases[circularIndex(results1$day, 4, 156)]
-  results1$mobilityLag5 = mobilityMOH$cases[circularIndex(results1$day, 5, 156)]
-  results1$mobilityLag6 = mobilityMOH$cases[circularIndex(results1$day, 6, 156)]
   
   ## Outbreak or not
   #results1$outbreak = 0
@@ -700,6 +638,7 @@ moh_names_array = intersect(moh_names_array, ALL_MOH_NAMES)
 moh_names_array
 
 ALL_MOH_NAMES = array(unique(dengue2013$MOH_name))
+ALL_MOH_NAMES = array(intersect(dengue2013$MOH_name, dengue2012$MOH_name))
 results = data.frame()
 test = data.frame()
 
@@ -709,6 +648,7 @@ date = "Sun Jan 08 10:13:13 IST 2017"
 date = "Tue Jan 10 17:02:07 IST 2017"
 date = "Tue Jan 10 17:53:18 IST 2017" ##with purpose of predicting the mid peak in Maharagama.....
 date = "Wed Jan 11 07:34:58 IST 2017" ##with purpose of predicting the mid peak in Dehiwala.......
+date = "Mon Jan 16 13:55:01 IST 2017" ##For Malaya
 
 ## Dehiwala
 resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Dehiwala-", date, sep = '')
