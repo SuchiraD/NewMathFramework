@@ -86,21 +86,21 @@ simpleCap = function(x) {
 mobilityTrips2013 = mobilityTrips2013[(mobilityTrips2013$HOME %in% ALL_MOH_NAMES),]
 getCases = function(x) {
   column = (as.integer(x[3])+2)
-  return (dengue2012[dengue2012$MOH_name==x[2],][,column])
+  return (dengue2012[dengue2012$MOH_name==x[2],][,column]/reportingRate)
 }
 mobilityTrips2013$HOME_CASES_2012 = apply(mobilityTrips2013, 1, getCases)
 class(mobilityTrips2013$HOME_CASES_2012) = "numeric"
 
 getCases = function(x) {
   column = (as.integer(x[3])+2)
-  dengue2013[dengue2013$MOH_name==x[2],][,column]
+  dengue2013[dengue2013$MOH_name==x[2],][,column]/reportingRate
 }
 mobilityTrips2013$HOME_CASES_2013 = apply(mobilityTrips2013, 1, getCases)
 class(mobilityTrips2013$HOME_CASES_2013) = "numeric"
 
 getCases = function(x) {
   column = (as.integer(x[3])+2)
-  dengue2014[dengue2014$MOH_name==x[2],][,column]
+  dengue2014[dengue2014$MOH_name==x[2],][,column]/reportingRate
 }
 mobilityTrips2013$HOME_CASES_2014 = apply(mobilityTrips2013, 1, getCases)
 class(mobilityTrips2013$HOME_CASES_2014) = "numeric"
@@ -128,6 +128,10 @@ for(moh in unique(mobilityTrips2013$MOH_NAME)) {
     index = index+1
   }
 }
+
+## Read Factorized mobility
+mobilityTripsFactorized = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorized.csv", data.table = F, header = T, stringsAsFactors = F)
+
 
 
 results = fread("myfile.csv", data.table = F, header = F, col.names = c(c(1:52), "Total"))
@@ -172,4 +176,4 @@ for(i in 3:54) {
 write.csv(x = results1, file = "results1.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = results2, file = "results2.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = test, file = "results3.csv", sep = ",", row.names = FALSE, col.names = TRUE)
-write.csv(x = mobilityTripsFactorized, file = "mobilityTripsFactorized.csv", row.names = FALSE)
+write.csv(x = mobilityTripsFactorized, file = "mobilityTripsFactorizedWithReportingRate.csv", row.names = FALSE)

@@ -149,8 +149,8 @@ inputs <- inputs[,-6]
 label = results$best.a[1:(nrow(results)-toPred)]
 
 nround = 2000
-model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE)
-nround = 894
+model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
+nround = 1500
 model <- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
 
 testData = data.frame(test[test$moh_name==area,][1:6], test[test$moh_name==area,][9:length(test)])
