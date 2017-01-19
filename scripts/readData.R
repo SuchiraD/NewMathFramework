@@ -130,7 +130,7 @@ for(moh in unique(mobilityTrips2013$MOH_NAME)) {
 }
 
 ## Read Factorized mobility
-mobilityTripsFactorized = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorized.csv", data.table = F, header = T, stringsAsFactors = F)
+mobilityTripsFactorized = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorizedWithReportingRate0.04.csv", data.table = F, header = T, stringsAsFactors = F)
 
 
 
@@ -176,4 +176,4 @@ for(i in 3:54) {
 write.csv(x = results1, file = "results1.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = results2, file = "results2.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = test, file = "results3.csv", sep = ",", row.names = FALSE, col.names = TRUE)
-write.csv(x = mobilityTripsFactorized, file = "mobilityTripsFactorizedWithReportingRate.csv", row.names = FALSE)
+write.csv(x = mobilityTripsFactorized, file = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorizedWithReportingRate0.025.csv", row.names = FALSE)

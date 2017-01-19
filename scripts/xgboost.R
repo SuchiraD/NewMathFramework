@@ -28,10 +28,11 @@ inputs = results[1:(nrow(results)-toPred),]
 inputs = data.frame(inputs[1:6], inputs[9:length(inputs)])
 inputs = data.matrix(inputs)
 inputs <- inputs[,-6]
+#inputs <- inputs[,-1]   ## Removing the column "day"
 label = results$best.a[1:(nrow(results)-toPred)]
 
-nround = 2000
-model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
+#nround = 2000
+#model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
 nround = 1500
 model <- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
 
@@ -40,6 +41,7 @@ actual = testData$best.a
 days = testData$day
 testData = data.matrix(testData)
 testData <- testData[,-6]
+#testData <- testData[,-1] ## Removing column "day"
 pred = predict(model, testData)
 mse(predicted = pred, actual = actual)
 rmsle(predicted = pred, actual = actual)
@@ -47,3 +49,38 @@ rmsle(predicted = pred, actual = actual)
 # R Squared
 R2 <- 1 - (sum((actual-pred )^2)/sum((actual-mean(actual))^2))
 R2
+
+
+trainTheModel = function(rounds=nround, depth=max.depth) {
+  inputs <<- results[1:(nrow(results)),]
+  inputs <<- data.frame(inputs[1:6], inputs[9:length(inputs)])
+  inputs <<- data.matrix(inputs)
+  inputs <<- inputs[,-6]
+  #inputs <<- inputs[,-1]   ## Removing the column "day"
+  label <<- results$best.a[1:(nrow(results))]
+  
+  #nround = 2000
+  #model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
+  model <<- xgboost(data = inputs, label = label, nfold = 1, max.depth = depth, eta = eta, nthread = 5, nround = rounds, objective = "reg:linear", maximize = FALSE)
+
+  return(model)  
+}
+
+testTheModel = function(area, model) {
+  test <<- test[order(test$day),]
+  testData <<- data.frame(test[test$moh_name==area,][1:6], test[test$moh_name==area,][9:length(test)])
+  actual <<- testData$best.a
+  days <<- testData$day
+  testData <<- data.matrix(testData)
+  testData <<- testData[,-6]
+  #testData <<- testData[,-1] ## Removing column "day"
+  pred <<- predict(model, testData)
+  cat(mse(predicted = pred, actual = actual), fill = T)
+  cat(rmsle(predicted = pred, actual = actual), fill = T)
+  
+  # R Squared
+  R2 <- 1 - (sum((actual-pred )^2)/sum((actual-mean(actual))^2))
+  cat(R2, fill = T)
+  
+  return(pred)
+}
