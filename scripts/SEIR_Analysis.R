@@ -179,25 +179,25 @@ setTrainingAndTest = function(resultLocation, testLocation, mohName) {
   #results3 <- data.frame(sapply(results3[1:7], as.numeric), results3[8], sapply(results2[9], as.numeric), stringsAsFactors = F)
   test1 <<- data.frame(sapply(test1[1:7], as.numeric), test1[8], sapply(test1[9], as.numeric), stringsAsFactors = F)
   
-  temperature = melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
+  temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
   
-  currentMOH = data.frame(week = 1:156, cases = 1:156)
+  currentMOH <<- data.frame(week = 1:156, cases = 1:156)
   cases2012 = melt(dengue2012[dengue2012$MOH_name==mohName,][,3:54])$value
   cases2013 = melt(dengue2013[dengue2013$MOH_name==mohName,][,3:54])$value
   cases2014 = melt(dengue2014[dengue2014$MOH_name==mohName,][,3:54])$value
   cases2011 = (cases2012+cases2013)/2
   cases2015 = (cases2013+cases2014)/2
   
-  currentMOH$cases = c(cases2012, cases2013, cases2011)
-  currentMOH$cases = currentMOH$cases/reportingRate
+  currentMOH$cases <<- c(cases2012, cases2013, cases2011)
+  currentMOH$cases <<- currentMOH$cases/reportingRate
   results1 <<- replaceInitValues(results1)
   
-  currentMOH$cases= c(cases2013, cases2014, cases2012)
-  currentMOH$cases = currentMOH$cases/reportingRate
+  currentMOH$cases <<- c(cases2013, cases2014, cases2012)
+  currentMOH$cases <<- currentMOH$cases/reportingRate
   results2 <<- replaceInitValues(results2)
   
-  currentMOH$cases = c(cases2014, cases2015, cases2013)
-  currentMOH$cases = currentMOH$cases/reportingRate
+  currentMOH$cases <<- c(cases2014, cases2015, cases2013)
+  currentMOH$cases <<- currentMOH$cases/reportingRate
   #results3 = replaceInitValues(results3)
   test1 <<- replaceInitValues(test1)
   
