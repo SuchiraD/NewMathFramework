@@ -5,16 +5,14 @@ require("sfsmisc")
 dengue2013_2014 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2013_2014.csv", data.table = F, header = T, col.names = c("id", "MOH_name", c(1:104), "Total"))
 
 #Read "dengueCases2014.csv"
-dengue2014 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2014.csv", data.table = F, header = F, col.names = c("id", "MOH_name", c(1:52), "Total"))
+dengue2014 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2014.csv", data.table = F, header = F, col.names = c("id", "MOH_name", c(1:52), "Total"), stringsAsFactors = F)
 
 #Read "dengueCases2013.csv"
-dengue2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2013.csv", data.table = F, header = F, col.names = c("id", "MOH_name", c(1:52), "Total"))
-dengue.data = dengue2013
+dengue2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2013.csv", data.table = F, header = F, col.names = c("id", "MOH_name", c(1:52), "Total"), stringsAsFactors = F)
 
 #Read "dengueCases2012.csv"
-dengue2012 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2012.csv", data.table = F, header = T, col.names = c("id", "MOH_name", c(1:52), "Total"))
+dengue2012 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Dengue/dengueCases2012.csv", data.table = F, header = T, col.names = c("id", "MOH_name", c(1:52), "Total"), stringsAsFactors = F)
 dengue2012 = dengue2012[-c(239,222, 281),]
-dengue.data = dengue2012
 
 currentMOH$cases= melt(dengue2014[181,][3:54])$value
 currentMOH$cases = currentMOH$cases/0.02
@@ -22,9 +20,7 @@ currentMOH$cases = currentMOH$cases/0.02
 #Read "temp.csv"
 colomboTempArea = 138
 dehiwalaTempArea = 296
-
-temperatureData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/temp/temp.csv", data.table = F, header = T)
-tempArea=dehiwalaTempArea
+temperatureData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/temp/temp.csv", data.table = F, header = T, stringsAsFactors = F)
 temperature = melt(temperatureData2013[tempArea,][,3:54])$value
 
 #Read rainFall 
@@ -32,9 +28,13 @@ rainfallData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-0
 rainFall = melt(rainfallData2013[152,][,2:53])$value
 
 #Read Population
-populations = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Population/Estimated and Actual Populations in MOH's Srilanka2.csv", data.table = F, header = T)
+populations = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Population/Estimated and Actual Populations in MOH's Srilanka2.csv", data.table = F, header = T, stringsAsFactors = F)
 populations = data.frame(sapply(populations[1:2], as.numeric), populations[3], sapply(populations[4:6], as.numeric))
   
+## Read districts with MOHs
+districtsAndMOHs = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/MOH/districts and mohs.csv", data.table = F, header = T, stringsAsFactors = F)
+
+
 #Read ISD
 isd = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/ISD-Weather/SL-2006-2016/9009387163514dat.txt", data.table = F, header = T, sep=' ')
 
@@ -63,18 +63,9 @@ mobilityTrips2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-
 class(mobilityTrips2013$WEEK_NUMBER) = 'numeric'
 class(mobilityTrips2013$MOBILITY_VALUE) = "numeric"
 mobilityTrips2013 = data.frame(MOH_NAME = sapply(mobilityTrips2013$MOH_NAME, simpleCap), HOME = sapply(mobilityTrips2013$HOME, simpleCap), mobilityTrips2013[3:4])
-mobilityTrips2013$HOME_CASES = 0
-getCases = function(x) {
-  column = (as.integer(x[3])+2)
-  dengue2013[dengue2013$MOH_name==x[2],][,column]
-}
-mobilityTrips2013$HOME_CASES = apply(mobilityTrips2013, 1, getCases)
-class(mobilityTrips2013$HOME_CASES) = "numeric"
-mobilityTrips2013[is.na(mobilityTrips2013)]= 0
-mobilityTrips2013$MOBILITY_FACTOR = mobilityTrips2013$MOBILITY_VALUE*mobilityTrips2013$HOME_CASES
 
 simpleCap = function(x) {
-  if(x=="MC - Colombo" || x=="Kalutara(North)" || x=="Beruwala(North)") {
+  if(x=="MC - Colombo" || x=="Kalutara(North)" || x=="Beruwala(North)" || x=="MC - Galle") {
     return (x)
   }
   s <- strsplit(x, " ")[[1]]
@@ -129,10 +120,27 @@ for(moh in unique(mobilityTrips2013$MOH_NAME)) {
   }
 }
 
+## Write processed mobility trips
+write.csv(x = mobilityTripsFactorized, file = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorizedWithReportingRate0.04.csv", row.names = FALSE)
+
 ## Read Factorized mobility
 mobilityTripsFactorized = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorizedWithReportingRate0.04.csv", data.table = F, header = T, stringsAsFactors = F)
+mobilityTripsFactorized = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorized.csv", data.table = F, header = T, stringsAsFactors = F)
 
 
+## Refactoring the raw vegetation index file
+vegetationIndices = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Vegetation Index/mean_negative_removed.csv", data.table = F, header = T, stringsAsFactors = F)
+columns = names(vegetationIndices)
+vegetationIndices = data.frame(MOH_Area = sapply(vegetationIndices$MOH_Area, simpleCap), vegetationIndices[2:ncol(vegetationIndices)], stringsAsFactors = F, row.names=NULL)
+colnames(vegetationIndices) = columns
+write.csv(x = vegetationIndices, file = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Vegetation Index/", row.names = FALSE)
+#names(vegetationIndices)[2:ncol(vegetationIndices)] = str_extract(string = columns[2:length(columns)], pattern = "([0-9]{4})_([0-9])(_[0-9])?")
+
+## Read vegetation indices
+vegetationIndices = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Vegetation Index/mean_negative_removed.csv", data.table = F, header = T, stringsAsFactors = F)
+## Extract columns only with an year and a month
+requiredCols = c(columns[1], str_extract(string = columns[2:length(columns)], pattern = "([0-9]{4})_([0-9]{1,2})(?!_)"))
+vegetationIndices = vegetationIndices[,(columns %in% requiredCols)]
 
 results = fread("myfile.csv", data.table = F, header = F, col.names = c(c(1:52), "Total"))
 results[results < 0] = 0
@@ -176,4 +184,3 @@ for(i in 3:54) {
 write.csv(x = results1, file = "results1.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = results2, file = "results2.csv", sep = ",", row.names = FALSE, col.names = TRUE)
 write.csv(x = test, file = "results3.csv", sep = ",", row.names = FALSE, col.names = TRUE)
-write.csv(x = mobilityTripsFactorized, file = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Mobility/mobilityTripsFactorizedWithReportingRate0.025.csv", row.names = FALSE)

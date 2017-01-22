@@ -1,3 +1,5 @@
+require("stringr")
+
 trainingDataFrame = data.frame()
 testingDataFrame = data.frame()
 
@@ -5,6 +7,7 @@ testingDataFrame = data.frame()
 ###################################      Functions       ######################
 setTrainingAndTestML = function(mohName) {
   
+  population = populations[populations$MOH_NAME==mohName, ]$actual_POP
   temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
   
   #currentMOH <<- data.frame(week = 1:156, cases = 1:156)
@@ -17,18 +20,18 @@ setTrainingAndTestML = function(mohName) {
   currentMOH <<- data.frame(week = 1:156, cases = 1:156)
   currentMOH$cases <<- c(cases2012, cases2013, cases2011)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
-  trainingDataFrame1 <<- data.frame(cases = cases2012, week = 1:52, year = 2012, moh_name = mohName, stringsAsFactors = F)
+  trainingDataFrame1 <<- data.frame(cases = cases2012, week = 1:52, year = 2012, moh_name = mohName, population = population, stringsAsFactors = F)
   trainingDataFrame1 <<- setColumns(trainingDataFrame1)
   
   currentMOH$cases <<- c(cases2013, cases2014, cases2012)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
-  trainingDataFrame2 <<- data.frame(cases = cases2013, week = 1:52, year = 2013, moh_name = mohName, stringsAsFactors = F)
+  trainingDataFrame2 <<- data.frame(cases = cases2013, week = 1:52, year = 2013, moh_name = mohName, population = population, stringsAsFactors = F)
   trainingDataFrame2 <<- setColumns(trainingDataFrame2)
   
   currentMOH$cases <<- c(cases2014, cases2015, cases2013)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   #results3 = setColumns(results3)
-  testingDataFrame1 <<- data.frame(cases = cases2014, week = 1:52, year = 2014, moh_name = mohName, stringsAsFactors = F)
+  testingDataFrame1 <<- data.frame(cases = cases2014, week = 1:52, year = 2014, moh_name = mohName, population = population, stringsAsFactors = F)
   testingDataFrame1 <<- setColumns(testingDataFrame1)
   
   cat("Reporting rate: ", reportingRate)
@@ -121,23 +124,48 @@ plotIncidencesGraphML = function(area, predictions) {
 ###################################   ML - Run all at once     #########################
 trainingDataFrame = data.frame()
 testingDataFrame = data.frame()
+incidencesPlotsML = list()
 areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala")
+areas = moh_in_galle[moh_in_galle %in% mohs_dengue12]
+areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
 for (mohName in areas) {
-  cat("***************** ",moh, "   ******************")
+  cat("***************** ",mohName, "   ******************")
   setTrainingAndTestML(mohName = mohName)
 }
 
-mlModel = trainTheMLmodel(depth = 10, rounds = 2000)
-area = areas[4]
-predictions = testTheMLmodel(area = area, model = mlModel)
-incidencesPlot = plotIncidencesGraphML(area = area, predictions = predictions)
-
-incidencesPlots = list()
+mlModel = trainTheMLmodel(depth = 10, rounds = 1000)
 
 for (index in 1:length(areas)) {
   area = areas[index]
   predictions = testTheMLmodel(area = area, model = mlModel)
-  incidencesPlots[[index]] = plotIncidencesGraphML(area = area, predictions = predictions)
-  
-  incidencesPlots[[index]]
+  incidencesPlotsML[[index]] = plotIncidencesGraphML(area = area, predictions = predictions)
 }
+
+incidencesPlotsML
+
+###################################   ML - Run all at once for seperate MOH areas     #########################
+incidencesPlotsForSeperateMOHs = list()
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+index = 1
+for (mohName in areas) {
+  trainingDataFrame = data.frame()
+  testingDataFrame = data.frame()
+  cat("***************** ",moh, "   ******************")
+  setTrainingAndTestML(mohName = mohName)
+  
+  mlModel = trainTheMLmodel(depth = 10, rounds = 1000)
+  
+  predictions = testTheMLmodel(area = mohName, model = mlModel)
+  incidencesPlotsForSeperateMOHs[[index]] = plotIncidencesGraphML(area = mohName, predictions = predictions)
+  index = index + 1
+}
+
+
+
+############################# Testings  ##################
+
+#([0-9]{4})_([0-9])(_[0-9])?
+testRegExp = paste((gsub('tempLag([0-9]+).*', "\\1", cols[grep("tempLag", cols)])), collapse = ", ")
+
+

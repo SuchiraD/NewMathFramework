@@ -6,6 +6,7 @@ require(Ckmeans.1d.dp)
 ## Plot importance matrix graph
 importance_matrix <- xgb.importance(sparce_matrix_train@Dimnames[[2]], model = model)
 importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = model)
+importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = mlModel)
 xgb.plot.importance(importance_matrix)
 
 area = 'Dehiwala'
@@ -97,7 +98,7 @@ label = trainingDataFrame$cases
 
 nround = 2000
 model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
-nround = 500
+nround = 800
 model <- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
 
 testData = testingDataFrame[testingDataFrame$moh_name==area,]
@@ -121,6 +122,9 @@ trainTheMLmodel = function(rounds=nround, depth=max.depth) {
   
   model <- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = rounds, objective = "reg:linear", maximize = FALSE)
   
+  #importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = model)
+  #xgb.plot.importance(importance_matrix)
+  
   return(model)
 }
 
@@ -140,3 +144,5 @@ testTheMLmodel = function(area, model) {
   
   return(pred)
 }
+
+############################      Machine Learning Model End    ##################
