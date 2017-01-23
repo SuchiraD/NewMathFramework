@@ -142,45 +142,31 @@ vegetationIndices = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-
 requiredCols = c(columns[1], str_extract(string = columns[2:length(columns)], pattern = "([0-9]{4})_([0-9]{1,2})(?!_)"))
 vegetationIndices = vegetationIndices[,(columns %in% requiredCols)]
 
-results = fread("myfile.csv", data.table = F, header = F, col.names = c(c(1:52), "Total"))
-results[results < 0] = 0
-plot(x = c(1:52), y = results[1,][1:52], lwd=3, xlab="Week",ylab="Total Infected", type = "l", col = "red", main = "Actual vs Predicted")
-lines(x = c(1:52), y = results[2,][1:52], xlab = "", ylab = "", lwd=3, type = "l", col = "black")
-axis(4)
-#mtext("y2",side=4,line=3)
-legend("topleft",col=c("red","black"),lty=1,legend=c("Actual","Predicted"))
-
-
-
-#Plot diagrams
-mfrow = c(2,1)
-par(mfrow=mfrow)                                              # divides the plot area into two up and two down
-mult.fig(mfrow = mfrow,main="SIR model of Dengue")
-
-plot(x = c(1:52), y = currentMOH[3:54], lwd=3, xlab="Week",ylab="Total Infected", type = "l", col = "red", main = "Dengue 2013")
-par(new = T)
-plot(x = c(1:52), y = tempCsv[138,][3:54], xaxt="n",yaxt="n", xlab = "", ylab = "", lwd=3, type = "l", col = "blue")
-axis(4)
-#mtext("y2",side=4,line=3)
-legend("topleft",col=c("red","blue"),lty=1,legend=c("Dengue 2013","Temperature"))
-
-plot(c(1:52), dengue.data[323,][3:54], xlab = "Week", ylab = "Total Infected", type = "l", col = "red", lwd=3, main = paste("Dengue 2014 - ", dengue.data[323,]$MOH_name))
-
-data <- dengue2014
-for (variable in 1:NROW(data)) {
-  if(max(data[variable,][3:54] > 15)) {
-    plot(c(1:52), data[variable,][3:54], xlab = "Week", ylab = "Total Infected", type = "l", col = "black", lwd=3, main = paste("Dengue 2014 - ", data[variable,][2]))
+## Convert monthly vegetation indices to weekly
+vegetationIndicesWeekly = data.frame(MOH_name = NA, year = NA, stringsAsFactors = F)
+vegetationIndicesWeekly[,3:54] = NA
+names(vegetationIndicesWeekly) = c("MOH_name", "year", 1:52)
+vegetationIndicesWeekly = vegetationIndicesWeekly[-1,]
+names_vegindex = names(vegetationIndices)
+year_month_list = strsplit(names_vegindex[2:length(names_vegindex)], "_")
+names_as_dates = as.Date("2017-1-1")
+for (i in 1:length(year_month_list)) {
+  names_as_dates[i] = as.Date(paste(year_month_list[[i]][1], year_month_list[[i]][2], 1, sep="-"))
+}
+veg_temp_frame = data.frame(date = names_as_dates)
+for (mohName in vegetationIndices$MOH_Area) {
+  veg_temp_frame$veg_index = melt(vegetationIndices[vegetationIndices$MOH_Area==mohName,][,2:ncol(vegetationIndices)])$value
+  findVegIndex = splinefun(veg_temp_frame)
+  weeks = 1:52
+  years = 2013:2014
+  index = nrow(vegetationIndicesWeekly)+1
+  for(year in years) {
+    veg_index_weekly = findVegIndex(as.Date(paste(year, weeks, 1, sep="-"), "%Y-%U-%u"))
+    vegetationIndicesWeekly[index,] = c(mohName, year, veg_index_weekly)
+    index = index + 1
   }
 }
-for(i in 3:54) {
-  dengue.data[323, ][i] = 0
-  dengue.data[323, ][i] = sum(dengue.data[i])
-}
+write.csv(x = vegetationIndicesWeekly, file = "/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Vegetation Index/vegetationIndicesWeekly.csv", row.names = FALSE)
 
-
-
-
-#Write CSV
-write.csv(x = results1, file = "results1.csv", sep = ",", row.names = FALSE, col.names = TRUE)
-write.csv(x = results2, file = "results2.csv", sep = ",", row.names = FALSE, col.names = TRUE)
-write.csv(x = test, file = "results3.csv", sep = ",", row.names = FALSE, col.names = TRUE)
+## Read weekly vegetation indices file
+vegetationIndicesWeekly = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Vegetation Index/vegetationIndicesWeekly.csv", data.table = F, header = T, stringsAsFactors = F)

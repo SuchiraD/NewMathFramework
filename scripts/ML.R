@@ -34,7 +34,7 @@ setTrainingAndTestML = function(mohName) {
   testingDataFrame1 <<- data.frame(cases = cases2014, week = 1:52, year = 2014, moh_name = mohName, population = population, stringsAsFactors = F)
   testingDataFrame1 <<- setColumns(testingDataFrame1)
   
-  cat("Reporting rate: ", reportingRate)
+  cat("Reporting rate: ", reportingRate, fill = T)
   
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame1)
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame2)
@@ -129,12 +129,18 @@ areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kad
 areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala")
 areas = moh_in_galle[moh_in_galle %in% mohs_dengue12]
 areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
+areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) & 
+                       (moh_in_kandy %in% mohs_population) &
+                       (moh_in_kandy %in% mohs_mobility) &
+                       (moh_in_kandy %in% mohs_dengue12) &
+                       (moh_in_kandy %in% mohs_dengue13)
+                     ]
 for (mohName in areas) {
-  cat("***************** ",mohName, "   ******************")
+  cat("***************** ",mohName, "   ******************", fill = T)
   setTrainingAndTestML(mohName = mohName)
 }
 
-mlModel = trainTheMLmodel(depth = 10, rounds = 1000)
+mlModel = trainTheMLmodel(depth = 12, rounds = 1000)
 
 for (index in 1:length(areas)) {
   area = areas[index]
@@ -142,11 +148,21 @@ for (index in 1:length(areas)) {
   incidencesPlotsML[[index]] = plotIncidencesGraphML(area = area, predictions = predictions)
 }
 
-incidencesPlotsML
+#  Save plots
+folderPath = file.path("images", "ml model", date)
+dir.create(folderPath)
+for (moh in areas) {
+  incidencesPlot = incidencesPlotsML[[grep(moh, areas)]]
+  
+  path = file.path(folderPath, incidencesPlot$labels$title)
+  
+  ggsave(filename = paste(path, ".png", sep = ""), plot = incidencesPlot, width = 14.23, height = 8, units = "in", dpi = 96)
+}
 
 ###################################   ML - Run all at once for seperate MOH areas     #########################
 incidencesPlotsForSeperateMOHs = list()
 areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
 index = 1
 for (mohName in areas) {
   trainingDataFrame = data.frame()

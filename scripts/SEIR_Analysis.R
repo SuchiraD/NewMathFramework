@@ -201,7 +201,7 @@ setTrainingAndTest = function(resultLocation, testLocation, mohName) {
   #results3 = replaceInitValues(results3)
   test1 <<- replaceInitValues(test1)
   
-  cat("Reporting rate: ", reportingRate)
+  cat("Reporting rate: ", reportingRate, fill = T)
   
   results <<- joinFrames(results, results1)
   results <<- joinFrames(results, results2)
