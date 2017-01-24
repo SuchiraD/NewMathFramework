@@ -32,15 +32,15 @@ calculateDengueDynamicsWeekly = function(day, sh0, eh0, ih0, rh0, index) {
                         best.rh = rh0, 
                         best.a = 0,
                         #test[index,][7],
-                        tempTest[index,][9:ncol(tempTest)])
-  sparce_matrix_test <- sparse.model.matrix(best.a ~ .-1, data = testData)
-  pred[index] <<- predict(model, sparce_matrix_test)
+                        tempTest[index,][9:ncol(tempTest)], stringsAsFactors = F)
+  matrix_test <- data.matrix(testData)
+  matrix_test <- matrix_test[,-6]
+  pred[index] <<- predict(model, matrix(matrix_test, nrow = 1))
   if(pred[index]<0) {
     pred[index] <<- mean(results$best.a)
   }
   a = pred[index]
 
-  
   
   sh0 = testData$best.sh
   eh0 = testData$best.eh
@@ -116,6 +116,24 @@ calculateDengueDynamicsWeekly10 = function(day, sh0, eh0, ih0, rh0, index, range
   return(ShEhIhRh)
 }
 
+calculateDengueDynamicsRecursively = function(seirDataFrame, gap = 4) {
+  if(nrow(seirDataFrame) != (gap+1)) {
+    for(week in 0:gap){
+      seirDataFrame[week+2,] = calculateDengueDynamicsWeekly(day = week, sh0 = seirDataFrame[week+1,]$sh, eh0 = seirDataFrame[week+1,]$eh, ih0 = seirDataFrame[week+1,]$ih, rh0 = seirDataFrame[week+1,]$rh, index = week+1)
+    }
+  }
+  
+  for(week in (gap+1):51) {
+    lastAnswer = calculateDengueDynamicsWeekly(day = week-gap, sh0 = seirDataFrame[week-gap+1,]$sh, eh0 = seirDataFrame[week-gap+1,]$eh, ih0 = seirDataFrame[week-gap+1,]$ih, rh0 = seirDataFrame[week-gap+1,]$rh, index = week-gap+1)
+    for(offset in 1:gap) {
+      lastAnswer = calculateDengueDynamicsWeekly(day = week+offset-gap, sh0 = lastAnswer[1], eh0 = lastAnswer[2], ih0 = lastAnswer[3], rh0 = lastAnswer[4], index = week+offset-gap+1)
+    }
+    seirDataFrame[week+1,] = lastAnswer
+  }
+  
+  return(seirDataFrame)
+}
+
 circularIndex = function(index, lag=1, array.size) {
   newIndex = index-lag
   
@@ -180,24 +198,34 @@ setTrainingAndTest = function(resultLocation, testLocation, mohName) {
   test1 <<- data.frame(sapply(test1[1:7], as.numeric), test1[8], sapply(test1[9], as.numeric), stringsAsFactors = F)
   
   temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
+  vegetationIndexes = vegetationIndicesWeekly[vegetationIndicesWeekly$MOH_name==mohName,]
   
-  currentMOH <<- data.frame(week = 1:156, cases = 1:156)
+  currentMOH <<- data.frame(week = 1:156, cases = 1:156, veg_index = 1:156)
   cases2012 = melt(dengue2012[dengue2012$MOH_name==mohName,][,3:54])$value
   cases2013 = melt(dengue2013[dengue2013$MOH_name==mohName,][,3:54])$value
   cases2014 = melt(dengue2014[dengue2014$MOH_name==mohName,][,3:54])$value
   cases2011 = (cases2012+cases2013)/2
   cases2015 = (cases2013+cases2014)/2
   
+  vegIndexes2013 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2013,][,3:54])
+  vegIndexes2014 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2014,][,3:54])
+  vegIndexes2015 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2015,][,3:54])
+  vegIndexes2012 = (vegIndexes2013+vegIndexes2014)/2
+  vegIndexes2011 = (vegIndexes2012+vegIndexes2013)/2
+  
   currentMOH$cases <<- c(cases2012, cases2013, cases2011)
   currentMOH$cases <<- currentMOH$cases/reportingRate
+  currentMOH$veg_index <<- c(vegIndexes2012, vegIndexes2013, vegIndexes2011)
   results1 <<- replaceInitValues(results1)
   
   currentMOH$cases <<- c(cases2013, cases2014, cases2012)
   currentMOH$cases <<- currentMOH$cases/reportingRate
+  currentMOH$veg_index <<- c(vegIndexes2013, vegIndexes2014, vegIndexes2012)
   results2 <<- replaceInitValues(results2)
   
   currentMOH$cases <<- c(cases2014, cases2015, cases2013)
   currentMOH$cases <<- currentMOH$cases/reportingRate
+  currentMOH$veg_index <<- c(vegIndexes2014, vegIndexes2015, vegIndexes2013)
   #results3 = replaceInitValues(results3)
   test1 <<- replaceInitValues(test1)
   
@@ -224,18 +252,18 @@ joinFrames = function(frame1, frame2) {
 
 replaceInitValues = function(results1) {
   # Previous cases
-  results1$casesLag4 = currentMOH$cases[circularIndex(results1$day, 4, 156)]
-  results1$casesLag5 = currentMOH$cases[circularIndex(results1$day, 5, 156)]
-  results1$casesLag6 = currentMOH$cases[circularIndex(results1$day, 6, 156)]
+  results1$casesLag8 = currentMOH$cases[circularIndex(results1$day, 8, 156)]
+  results1$casesLag9 = currentMOH$cases[circularIndex(results1$day, 9, 156)]
+  results1$casesLag10 = currentMOH$cases[circularIndex(results1$day, 10, 156)]
   
   # Previous temperatures
-  results1$tempLag4 = temperature[circularIndex(results1$day, 4, 52)]
-  results1$tempLag5 = temperature[circularIndex(results1$day, 5, 52)]
-  results1$tempLag6 = temperature[circularIndex(results1$day, 6, 52)]
-  results1$tempLag7 = temperature[circularIndex(results1$day, 7, 52)]
   results1$tempLag8 = temperature[circularIndex(results1$day, 8, 52)]
   results1$tempLag9 = temperature[circularIndex(results1$day, 9, 52)]
   results1$tempLag10 = temperature[circularIndex(results1$day, 10, 52)]
+  results1$tempLag11 = temperature[circularIndex(results1$day, 11, 52)]
+  results1$tempLag12 = temperature[circularIndex(results1$day, 12, 52)]
+  results1$tempLag13 = temperature[circularIndex(results1$day, 13, 52)]
+  results1$tempLag14 = temperature[circularIndex(results1$day, 14, 52)]
   
   #Factorized mobility values
   current.moh.name = unique(results1$moh_name)
@@ -261,12 +289,18 @@ replaceInitValues = function(results1) {
     mobilityMOH$cases = c(cases2014, cases2015, cases2013)
     mobilityMOH$cases = mobilityMOH$cases/reportingRate
   }
-  results1$mobilityLag4 = mobilityMOH$cases[circularIndex(results1$day, 4, 156)]
-  results1$mobilityLag5 = mobilityMOH$cases[circularIndex(results1$day, 5, 156)]
-  results1$mobilityLag6 = mobilityMOH$cases[circularIndex(results1$day, 6, 156)]
-  results1$mobilityLag7 = mobilityMOH$cases[circularIndex(results1$day, 7, 156)]
   results1$mobilityLag8 = mobilityMOH$cases[circularIndex(results1$day, 8, 156)]
   results1$mobilityLag9 = mobilityMOH$cases[circularIndex(results1$day, 9, 156)]
+  results1$mobilityLag10 = mobilityMOH$cases[circularIndex(results1$day, 10, 156)]
+  results1$mobilityLag11 = mobilityMOH$cases[circularIndex(results1$day, 11, 156)]
+  results1$mobilityLag12 = mobilityMOH$cases[circularIndex(results1$day, 12, 156)]
+  results1$mobilityLag13 = mobilityMOH$cases[circularIndex(results1$day, 13, 156)]
+  
+  
+  ##Vegetation index lags
+  #results1$vegIndexLag4 = currentMOH$veg_index[circularIndex(results1$day, 4, 156)]
+  #results1$vegIndexLag5 = currentMOH$veg_index[circularIndex(results1$day, 5, 156)]
+  #results1$vegIndexLag6 = currentMOH$veg_index[circularIndex(results1$day, 6, 156)]
   
   return(results1)
 }  
@@ -355,7 +389,7 @@ replaceInitValues = function(results1){
 }
 
 ## Get top 10 moh areas according to mobility
-moh_names_array = array(unique(mobilityTrips2013$HOME[mobilityTrips2013$MOH_NAME=='Dehiwala'], nmax = 10))
+moh_names_array = array(unique(mobilityTrips2013$HOME[mobilityTrips2013$MOH_NAME=='MC - Colombo'], nmax = 10))
 moh_names_array = intersect(moh_names_array, ALL_MOH_NAMES)
 moh_names_array
 
@@ -386,11 +420,11 @@ results = data.frame()
 test = data.frame()
 
 ## Dehiwala
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Dehiwala-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/Dehiwala", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, area2012 = 1, area2013_2014 = 55, tempArea = 296, mobilityArea = 57)
 
 ## Panadura
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Panadura-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "Panadura", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, area2012 = 36, area2013_2014 = 235, tempArea = 41, mobilityArea = 239)
 
 ## Piliyandala
@@ -406,8 +440,9 @@ resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, area2012 = 12, area2013_2014 = 41, tempArea = 47, mobilityArea = 43)
 
 #Kaduwela
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Kaduwela-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/Kaduwela", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, area2012 = 4, area2013_2014 = 111, tempArea = 103, mobilityArea = 112)
+setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, "Kaduwela")
 
 #Kollonnawa
 resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Kollonnawa-", date, sep = '')
@@ -426,16 +461,19 @@ resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, area2012 = 20, area2013_2014 = 135, tempArea = 143, mobilityArea = 140)
 
 #Maharagama
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Maharagama-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/Maharagama", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation,  area2012 = 7, area2013_2014 = 166, tempArea = 97, mobilityArea = 170)
+setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, "Maharagama")
 
 #MC - Colombo
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/MC - Colombo-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/MC - Colombo", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation,  area2012 = 8, area2013_2014 = 181, tempArea = 138, mobilityArea = 52)
+setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation,  "MC - Colombo")
 
 #Moratuwa
-resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/Moratuwa-", date, sep = '')
+resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/Moratuwa", sep = '')
 setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation,  area2012 = 9, area2013_2014 = 200, tempArea = 75, mobilityArea = 199)
+setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, "Moratuwa")
 
 ## Draw incidences graph
 area = 'Kaduwela'
@@ -444,7 +482,7 @@ tempTest = test[test$moh_name==area,]
 tempSEIR = array(tempTest[1,][2:5])
 SEIR = data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])
 for(week in 0:(length(predA)-1)) {
-  tempSEIR = calculateDengueDynamicsWeekly(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1))
+  tempSEIR = calculateDengueDynamicsWeekly(day = week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1))
   #tempSEIR = calculateDengueDynamicsWeekly10(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1), 4)
   #tempSEIR = calculateDengueDynamicsWeeklyWithPredVals(index = (week+1))
   #SEIR = data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])  
@@ -503,11 +541,10 @@ predictSEIR = function(area) {
   tempTest <<- test[test$moh_name==area,]
   tempSEIR <<- array(tempTest[1,][2:5])
   SEIR <<- data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])
+  #SEIR <<- calculateDengueDynamicsRecursively(seirDataFrame = SEIR)
   for(week in 0:(length(predA)-1)) {
     tempSEIR <<- calculateDengueDynamicsWeekly(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1))
     #tempSEIR = calculateDengueDynamicsWeekly10(week,sh0 = tempSEIR[1], eh0 = tempSEIR[2], ih0 = tempSEIR[3], rh0 = tempSEIR[4], index = (week+1), 4)
-    #tempSEIR = calculateDengueDynamicsWeeklyWithPredVals(index = (week+1))
-    #SEIR = data.frame(sh = tempSEIR[1], eh = tempSEIR[2], ih = tempSEIR[3], rh = tempSEIR[4])  
     SEIR[week+2, ] <<- tempSEIR
   }
   cat(rmsle(predicted = pred, actual = actual), fill = T)

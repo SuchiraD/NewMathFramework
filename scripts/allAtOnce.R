@@ -1,4 +1,4 @@
-date = "Mon Jan 23 12:02:29 IST 2017"
+date = "Tue Jan 24 07:53:11 IST 2017"
 date = "Thu Jan 05 20:45:29 IST 2017"
 date = "Thu Jan 05 06:06:49 IST 2017" ## CMC RMSE = 21.96, R2 = 0.50
 date = "Wed Jan 18 18:52:24 IST 2017" ##MC -Colombo with 200 iterations ------ RMSE = 22.7, R2 = 0.46 ----- RMSE = 22.08, R2 = 0.49 ---- RMSE = 20.83, R2 = 0.55
@@ -8,8 +8,9 @@ date = "Wed Jan 18 18:52:24 IST 2017" ##MC -Colombo with 200 iterations ------ R
 results = data.frame()
 test = data.frame()
 areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Kelaniya", "Wattala")
 areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa")
-areas = c("MC - Colombo", "Maharagama", "Kaduwela", "Moratuwa")
+areas = c("Kaduwela", "Maharagama", "MC - Colombo", "Moratuwa")
 areas = c("MC - Colombo")
 areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
 areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) & 

@@ -1,5 +1,6 @@
 require("stringr")
 
+rm(currentMOH)
 trainingDataFrame = data.frame()
 testingDataFrame = data.frame()
 
@@ -9,6 +10,7 @@ setTrainingAndTestML = function(mohName) {
   
   population = populations[populations$MOH_NAME==mohName, ]$actual_POP
   temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
+  vegetationIndexes = vegetationIndicesWeekly[vegetationIndicesWeekly$MOH_name==mohName,]
   
   #currentMOH <<- data.frame(week = 1:156, cases = 1:156)
   cases2012 = melt(dengue2012[dengue2012$MOH_name==mohName,][,3:54])$value
@@ -17,24 +19,31 @@ setTrainingAndTestML = function(mohName) {
   cases2011 = (cases2012+cases2013)/2
   cases2015 = (cases2013+cases2014)/2
   
-  currentMOH <<- data.frame(week = 1:156, cases = 1:156)
+  vegIndexes2013 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2013,][,3:54])
+  vegIndexes2014 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2014,][,3:54])
+  vegIndexes2015 = as.numeric(vegetationIndexes[vegetationIndexes$year == 2015,][,3:54])
+  vegIndexes2012 = (vegIndexes2013+vegIndexes2014)/2
+  vegIndexes2011 = (vegIndexes2012+vegIndexes2013)/2
+  
+  currentMOH <<- data.frame(week = 1:156, cases = 1:156, veg_index = 1:156)
   currentMOH$cases <<- c(cases2012, cases2013, cases2011)
+  currentMOH$veg_index <<- c(vegIndexes2012, vegIndexes2013, vegIndexes2011)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   trainingDataFrame1 <<- data.frame(cases = cases2012, week = 1:52, year = 2012, moh_name = mohName, population = population, stringsAsFactors = F)
   trainingDataFrame1 <<- setColumns(trainingDataFrame1)
   
   currentMOH$cases <<- c(cases2013, cases2014, cases2012)
+  currentMOH$veg_index <<- c(vegIndexes2013, vegIndexes2014, vegIndexes2012)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   trainingDataFrame2 <<- data.frame(cases = cases2013, week = 1:52, year = 2013, moh_name = mohName, population = population, stringsAsFactors = F)
   trainingDataFrame2 <<- setColumns(trainingDataFrame2)
   
   currentMOH$cases <<- c(cases2014, cases2015, cases2013)
+  currentMOH$veg_index <<- c(vegIndexes2014, vegIndexes2015, vegIndexes2013)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   #results3 = setColumns(results3)
   testingDataFrame1 <<- data.frame(cases = cases2014, week = 1:52, year = 2014, moh_name = mohName, population = population, stringsAsFactors = F)
   testingDataFrame1 <<- setColumns(testingDataFrame1)
-  
-  cat("Reporting rate: ", reportingRate, fill = T)
   
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame1)
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame2)
@@ -89,6 +98,12 @@ setColumns = function(train_test_dataframe) {
   train_test_dataframe$mobilityLag8 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 8, 156)]
   train_test_dataframe$mobilityLag9 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 9, 156)]
   
+  
+  ##Vegetation index lags
+  train_test_dataframe$vegIndexLag4 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 4, 156)]
+  train_test_dataframe$vegIndexLag5 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 5, 156)]
+  train_test_dataframe$vegIndexLag6 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 6, 156)]
+  
   return(train_test_dataframe)
 }
 
@@ -125,8 +140,6 @@ plotIncidencesGraphML = function(area, predictions) {
 trainingDataFrame = data.frame()
 testingDataFrame = data.frame()
 incidencesPlotsML = list()
-areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
-areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala")
 areas = moh_in_galle[moh_in_galle %in% mohs_dengue12]
 areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
 areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) & 
@@ -140,7 +153,7 @@ for (mohName in areas) {
   setTrainingAndTestML(mohName = mohName)
 }
 
-mlModel = trainTheMLmodel(depth = 12, rounds = 1000)
+mlModel = trainTheMLmodel(depth = 10, rounds = 1000)
 
 for (index in 1:length(areas)) {
   area = areas[index]
@@ -149,6 +162,7 @@ for (index in 1:length(areas)) {
 }
 
 #  Save plots
+date = Sys.time()
 folderPath = file.path("images", "ml model", date)
 dir.create(folderPath)
 for (moh in areas) {
@@ -177,6 +191,17 @@ for (mohName in areas) {
   index = index + 1
 }
 
+#  Save plots
+date = Sys.time()
+folderPath = file.path("images", "ml model - seperate mohs", date)
+dir.create(folderPath)
+for (moh in areas) {
+  incidencesPlot = incidencesPlotsForSeperateMOHs[[grep(moh, areas)]]
+  
+  path = file.path(folderPath, incidencesPlot$labels$title)
+  
+  ggsave(filename = paste(path, ".png", sep = ""), plot = incidencesPlot, width = 14.23, height = 8, units = "in", dpi = 96)
+}
 
 
 ############################# Testings  ##################

@@ -158,7 +158,7 @@ for (mohName in vegetationIndices$MOH_Area) {
   veg_temp_frame$veg_index = melt(vegetationIndices[vegetationIndices$MOH_Area==mohName,][,2:ncol(vegetationIndices)])$value
   findVegIndex = splinefun(veg_temp_frame)
   weeks = 1:52
-  years = 2013:2014
+  years = 2013:2015
   index = nrow(vegetationIndicesWeekly)+1
   for(year in years) {
     veg_index_weekly = findVegIndex(as.Date(paste(year, weeks, 1, sep="-"), "%Y-%U-%u"))

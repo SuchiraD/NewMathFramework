@@ -5,7 +5,7 @@ require(Ckmeans.1d.dp)
 
 ## Plot importance matrix graph
 importance_matrix <- xgb.importance(sparce_matrix_train@Dimnames[[2]], model = model)
-importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = model)
+importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = modelForParamA)
 importance_matrix <- xgb.importance(feature_names = colnames(inputs), model = mlModel)
 xgb.plot.importance(importance_matrix)
 
@@ -36,14 +36,13 @@ label = results$best.a[1:(nrow(results)-toPred)]
 #nround = 2000
 #model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
 nround = 1500
-model <- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
+model <<- xgboost(data = inputs, label = label, nfold = 1, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", maximize = FALSE)
 
 testData = data.frame(test[test$moh_name==area,][1:6], test[test$moh_name==area,][9:length(test)])
 actual = testData$best.a
 days = testData$day
 testData = data.matrix(testData)
 testData <- testData[,-6]
-#testData <- testData[,-1] ## Removing column "day"
 pred = predict(model, testData)
 mse(predicted = pred, actual = actual)
 rmsle(predicted = pred, actual = actual)
@@ -61,8 +60,10 @@ trainTheModel = function(rounds=nround, depth=max.depth) {
   #inputs <<- inputs[,-1]   ## Removing the column "day"
   label <<- results$best.a[1:(nrow(results))]
   
-  #nround = 2000
-  #model <- xgb.cv(data = inputs, label = label, nfold = 2, max.depth = max.depth, eta = eta, nthread = 5, nround = nround, objective = "reg:linear", early.stop.round = 10, maximize = FALSE, verbose = 0)
+  cat("\nDepth = ", depth, fill = T)
+  cat("Rounds = ", rounds, fill = T)
+  cat("Learning rate = ", eta, fill = T)
+  
   model <<- xgboost(data = inputs, label = label, nfold = 1, max.depth = depth, eta = eta, nthread = 5, nround = rounds, objective = "reg:linear", maximize = FALSE)
 
   return(model)  
